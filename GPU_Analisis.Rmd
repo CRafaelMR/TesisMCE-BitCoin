@@ -1,0 +1,242 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+La base de datos de UserBenchmark de GPU contiene informacion de tarjetas graficas. Podemos usarla para revisar market share, revisar performance promedio por compañia, y veamos que tan completa es la informacion de precios. Luego, podemos revisar
+
+```{r}
+
+library(haven)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(tidyverse)
+library(hrbrthemes)
+library(lubridate)
+#install.packages("VGAM")
+library(VGAM)
+#para abrir APIS
+library(httr)
+library(jsonlite)
+
+setwd("G:/bitcoin/")
+GPU <-read.csv("GPU_UserBenchmarks.csv")
+NH =read_excel("NH_Profit_GPU.xlsx")
+```
+
+
+
+```{r}
+#install.packages('quantmod')
+
+#Fecha de interes mayo (05/2021) 2021-05-01, to=2021-05-31
+desde =  "2021-03-01"
+hasta = "2021-06-01"
+
+library(quantmod)
+
+
+#BTC.close <- na.omit(getSymbols('BTC-USD', from = desde, to=hasta , src="yahoo", auto.assign = F) [,c("BTC-USD.Open")])
+
+
+
+
+
+
+BTC.close <- na.omit(getSymbols('BTC-USD', from = desde, to=hasta ,src="yahoo", auto.assign = F) [,c("BTC-USD.Close")])
+
+BTC.open <- na.omit(getSymbols('BTC-USD', from = desde, to=hasta ,src="yahoo", auto.assign = F) [,c("BTC-USD.Open")])
+
+BTC.pct= (BTC.open-BTC.close)/BTC.open
+
+NVIDIA.close <- na.omit(getSymbols("NVDA",from = desde, to=hasta ,src="yahoo", auto.assign = F) [,c("NVDA.Close")])
+
+NVIDIA.open <- na.omit(getSymbols("NVDA", from = desde, to=hasta ,src="yahoo", auto.assign = F) [,c("NVDA.Open")])
+
+NVIDIA.pct= (NVIDIA.open-NVIDIA.close)/NVIDIA.open
+
+MSFT.Close <- na.omit(getSymbols("MSFT", from = desde, to=hasta ,src="yahoo", auto.assign = F) [,c("MSFT.Close")])
+
+
+MSFT.Open <- na.omit(getSymbols("MSFT", from = "2019-01-01", to = "2022-01-01" ,src="yahoo", auto.assign = F) [,c("MSFT.Open")])
+
+MSFT.pct= (MSFT.Open-MSFT.Close)/MSFT.Open
+
+
+acciones.pct=cbind(BTC.pct, MSFT.pct, NVIDIA.pct)
+```
+
+
+```{r}
+t=time(BTC.close)
+BTC= cbind(t , as.data.frame(BTC.close))
+ggplot(BTC, aes(x=t,y=BTC.close))+
+  geom_line()+
+  geom_vline(xintercept=as.Date('2021-05-21') , color="red", size=1)+
+  theme_pubclean()+
+  labs(x="Fecha del 1-6-2020 a 31-1-2022",
+  y= "Precio de cierrre de Bitcoin en USD")
+  
+tN=time(NVIDIA.close)
+NVD= cbind(tN , as.data.frame(NVIDIA.close))
+
+ggplot(NVD, aes(x=tN,y=NVIDIA.close))+
+  geom_line()+
+  geom_vline(xintercept=as.Date('2021-05-21') , color="red", size=1)+
+  theme_pubclean()+
+  labs(x="Fecha del 1-6-2020 a 31-1-2022",
+  y= "Precio de cierrre de Nvidia en USD")
+
+
+```
+
+
+```{r}
+library(ggpubr)
+Bitg = ggplot(acciones.pct, 
+              aes(
+                  x=time(acciones.pct),
+                  y=acciones.pct$BTC.USD.Open*100,
+                  
+                  ) 
+              )+
+  geom_point(color=ifelse(
+                    test=as.data.frame(acciones.pct$BTC.USD.Open*100)>=0,
+                    yes =, "green",
+                    no= "red"),
+             shape=ifelse(
+                    test=as.data.frame(acciones.pct$BTC.USD.Open*100)>=0,
+                    yes = 2,
+                    no= 6),
+             size= 3,
+             fill=ifelse(
+                    test=as.data.frame(acciones.pct$BTC.USD.Open*100)>=0,
+                    yes =, "green",
+                    no= "red"),
+             #ylab=("Fecha"), 
+              #    xlab= ("Cambio % BTC-USD"),
+             #ylim=c(-20,10)
+             )+
+  geom_line(size=1, shape=2)+
+  geom_vline(xintercept=as.Date('2021-05-21') , color="grey", size=1)+
+  theme_pubclean()+
+  ylim(-20,10)
+
+  
+NVg= ggplot(acciones.pct, aes(x=time(acciones.pct),y=acciones.pct$NVDA.Open*100, ylab= "Cambio % Nvidia"))+
+  geom_point(color=ifelse(
+                    test=as.data.frame(acciones.pct$NVDA.Open*100)>=0,
+                    yes =, "green",
+                    no= "red"),
+             shape=ifelse(
+                    test=as.data.frame(acciones.pct$NVDA.Open*100)>=0,
+                    yes = 2,
+                    no= 6),
+             size= 3,
+             fill=ifelse(
+                    test=as.data.frame(acciones.pct$NVDA.Open*100)>=0,
+                    yes =, "green",
+                    no= "red"),
+                    #ylab=("Fecha"), 
+                  #xlab=("Precio NVDA"),
+             ylim=c(-20,10)
+             )+
+  geom_line(size=1)+
+  geom_vline(xintercept=as.Date('2021-05-21') , color="grey", size=1)+
+  theme_pubclean()+
+  ylim(-20,10)
+
+
+
+
+
+MSg=ggplot(acciones.pct, aes(x=time(acciones.pct),y=acciones.pct$MSFT.Open*100, ylab= "Cambio % MSFT"),ylim=c(-20,10))+
+  geom_point(color=ifelse(
+                    test=as.data.frame(acciones.pct$MSFT.Open*100)>=0,
+                    yes =, "green",
+                    no= "red"),
+             shape=ifelse(
+                    test=as.data.frame(acciones.pct$MSFT.Open*100)>=0,
+                    yes = 2,
+                    no= 6),
+             size= 3,
+             fill=ifelse(
+                    test=as.data.frame(acciones.pct$MSFT.Open*100)>=0,
+                    yes =, "green",
+                    no= "red"),
+             ylab=("Fecha"), 
+                  xlab= ("variación % MSFT"),
+             ylim=c(-20,10))+
+  geom_line(size=1)+
+  geom_vline(xintercept=as.Date('2021-05-21') , color="grey", size=1)+
+  theme_pubclean()+
+  ylim(-20,10)
+
+
+
+ggarrange(Bitg, NVg, MSg + rremove("x.text"), 
+                    ncol = 1, nrow = 3)
+
+```
+
+```{r}
+
+#Fecha de extraccion 2 de enero 2022
+BTC_ref = 47291.83
+Fusion=left_join(NH,GPU, by=("Model"))
+  
+CARDS=Fusion%>%rename("Brand" = Brand.x,
+                      "Energy_W"= `energy_consumption_WATT(*10)`,
+                      "Eficiencia_USD_WATT"=`eficiencia_USD/WATT`)%>%
+                select(-c(Brand.y, URL))%>%
+                mutate(profit_BTC= as.numeric(net_profit_US_DAY)/BTC_ref,
+                       Costs_BTC=as.numeric(`Electric_cost_USD(5cent)`)/BTC_ref,
+                       eficiencia_BTC= Costs_BTC/Energy_W)
+                
+  
+  
+  
+```
+
+```{r}
+CARDS%>%
+  ggplot(aes(y=Benchmark, x=as.numeric(net_profit_US_DAY), color=Brand, shape = Brand, 
+             )
+         )+
+  geom_point(size=2)+
+    theme_pubclean()+
+  labs( title = "Calidad tecnica respecto a Beneficio de Mina de GPUs",x= "Beneficio Diario Neto de Mina (USD)", y="Indice Integrado de Calidad")+
+  geom_smooth(method = "lm", se = FALSE)
+  xlim(-1,6)
+
+```
+
+
+```{r}
+CARDS%>%
+  group_by(Brand)%>%
+  summarise(n = n(),
+            muestras =sum(Samples,na.rm = T),
+            Poder =muestras/n,
+            RANK= mean(Rank, na.rm = T),
+            Eficiencia = mean(eficiencia_BTC,na.rm = T),
+            BENCH = mean(Benchmark ,na.rm = T),
+            energia =mean(Energy_W,na.rm = T),
+            profit= mean(profit_BTC, na.rm = T))%>%
+  arrange(Poder)
+
+```
+Intentemos abrir API de Comparacion de mina de Cryptos
+```{r}
+NCHSH = GET("https://api2.nicehash.com/main/api/v2/mining/external/{btcAddress}/rigs2")
+NCSHMKT = GET("https://api2.nicehash.com/main/api/v2/mining/markets")
+
+rawToChar(NCSHMKT$content)
+MKT = fromJSON(rawToChar(NCSHMKT$content))
+names(MKT)
+```
+
+
+
+
+

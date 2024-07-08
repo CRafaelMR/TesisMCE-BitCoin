@@ -1,0 +1,86 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+La base de datos de UserBenchmark de GPU contiene informacion de tarjetas graficas. Podemos usarla para revisar market share, revisar performance promedio por compañia, y veamos que tan completa es la informacion de precios. Luego, podemos revisar
+
+```{r}
+
+library(haven)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(tidyverse)
+library(hrbrthemes)
+library(lubridate)
+#install.packages("VGAM")
+library(VGAM)
+setwd("D://Users//jimer//OneDrive//Escritorio//Cosas//Magister//Bitcoin")
+GPU <-read.csv("D:/Users/jimer/OneDrive/Escritorio/Cosas/Magister/Bitcoin/GPU_UserBenchmarks.csv")
+
+```
+```{r}
+GPU%>%
+  filter(Brand == "Nvidia" | Brand == "AMD")%>%
+  ggplot(aes(x=Benchmark, y= -Rank, color=Brand))+geom_point(size=1)
+
+GPU%>%group_by(Brand)%>% 
+  summarise(n = n(),
+            muestras =sum(Samples),
+            Poder =muestras/n)%>%
+  arrange(Poder)%>%
+  #view()
+
+```
+
+
+Tarjetas probadas por Toms Shack
+Radeon RX 6900 XT 'reference'
+Radeon RX 6800 XT 'reference'
+Radeon RX 6800 'reference'
+Radeon RX 6700 XT 'reference'
+Radeon RX 5700 XT 'reference'
+Radeon RX 5700 'reference'
+Sapphire RX 5600 XT Pulse
+Sapphire RX 5500 XT 8GB Pulse
+Sapphire RX 5500 XT 4GB Pulse
+AMD Radeon VII 'reference'
+AMD Radeon RX Vega 64 'reference'
+AMD Radeon RX Vega 56 'reference'
+XFX RX 590 Fatboy
+Sapphire RX 580 8GB Nitro+ LE
+MSI RX 570 4GB Gaming X
+MSI RX 560 4GB Aero
+Radeon R9 Fury X
+Sapphire R9 390 Nitro
+
+GeForce RTX 3090 FE
+GeForce RTX 3080 FE
+GeForce RTX 3070 FE
+GeForce RTX 3060 Ti FE
+EVGA GeForce RTX 3060 12GB
+GeForce RTX 2080 Ti FE
+GeForce RTX 2080 Super FE
+GeForce RTX 2080 FE
+GeForce RTX 2070 Super FE
+GeForce RTX 2070 FE
+GeForce RTX 2060 Super FE
+GeForce RTX 2060 FE
+EVGA GTX 1660 Ti XC
+EVGA GTX 1660 Super
+Zotac GTX 1660 Amp
+Zotac GTX 1650 Super Twin
+EVGA GTX 1650 GDDR6
+Gigabyte GTX 1650 Gaming OC
+GeForce GTX 1080 Ti FE
+GeForce GTX 1080 FE
+GeForce GTX 1070 Ti FE
+GeForce GTX 1070 FE
+GeForce GTX 1060 6GB FE
+Zotac GTX 1060 3GB
+MSI GTX 1050 Ti Gaming X
+MSI GTX 1050 Gaming X
+GeForce GTX 980 Ti
+GeForce GTX 980
+Zotac GeForce GTX 970
+EVGA GeForce GTX 780
